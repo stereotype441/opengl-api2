@@ -2,6 +2,13 @@ Data sources I want to look at
 - www.opengl.org/registry/api/
 - master database
 - www.khronos.org/registry/gles/api/
+  - 1.0/gl.h
+  - 1.1/gl.h
+  - 1.1/glext.h
+  - 2.0/gl2.h
+  - 2.0/gl2ext.h
+  - 3.0/gl3.h
+  - 3.0/gl3ext.h
 - mesa/include/GL/
 - piglit/glapi/
 - mesa/src/mapi/glapi/gen/
