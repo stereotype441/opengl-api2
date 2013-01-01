@@ -10,7 +10,7 @@ import spec_file
 def translate_functions(functions):
     result = {}
     for name in functions.keys():
-        result[name] = {}
+        result['gl' + name] = {}
     return result
 
 
