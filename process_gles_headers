@@ -24,7 +24,7 @@ def translate_functions(result, functions):
 class Processor(object):
     def __init__(self):
         parser = argparse.ArgumentParser(
-            description='Process files downloaded from www.knronos.org/registry/gles/api/')
+            description='Process headers downloaded from www.knronos.org/registry/gles/api/')
         parser.add_argument('path', metavar='PATH',
                             help='Path to www.khronos.org/registry/gles/api/')
         parser.add_argument('--add', action='store_true',
