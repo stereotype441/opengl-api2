@@ -126,7 +126,7 @@ class Parser(object):
         self.skip()
         # Consume additional modifiers
         while True:
-            if self.peek().str in ('APIENTRY', 'GL_APIENTRY'):
+            if self.peek().str in ('APIENTRY', 'GL_APIENTRY', 'GLAPIENTRY'):
                 pass
             elif self.peek().str == '*':
                 return_type_tokens.append('*')

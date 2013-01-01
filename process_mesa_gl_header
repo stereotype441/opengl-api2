@@ -1,0 +1,76 @@
+#!/usr/bin/env python3
+
+
+import argparse
+import master
+import os.path
+import c_file
+
+
+# Functions that appear in Mesa's GL header but shouldn't be added to
+# the master database, and why.
+MESA_EXTRA_FUNCTIONS = set([
+        # This function is from GL_ATI_blend_equation_separate, an
+        # undocumented extension which is supported by Mesa but which
+        # does not exist in the official glext.h header.
+        'glBlendEquationSeparateATI',
+
+        # These funtions are from GL_MESA_shader_debug, an obsolete
+        # extension whish is not even supported by Mesa.
+        'glClearDebugLogMESA',
+        'glCreateDebugObjectMESA',
+        'glGetDebugLogLengthMESA',
+        'glGetDebugLogMESA',
+
+        # These functions are from GL_MESA_program_debug, an obsolete
+        # extension which is not even supported by Mesa.
+        'glGetProgramRegisterfvMESA',
+        'glProgramCallbackMESA',
+        ])
+
+
+def translate_functions(functions):
+    result = {}
+    for name in functions.keys():
+        if name in MESA_EXTRA_FUNCTIONS:
+            continue
+        result[name] = {}
+    return result
+
+
+class Processor(object):
+    def __init__(self):
+        parser = argparse.ArgumentParser(
+            description='Process header from mesa/include/GL/gl.h')
+        parser.add_argument('path', metavar='PATH',
+                            help='Path to mesa/include/GL/gl.h')
+        parser.add_argument('--add', action='store_true',
+                            help='Add new functions to master database')
+        self.args = parser.parse_args()
+
+    def run(self):
+        self.mesa_functions = translate_functions(
+            c_file.parse_c_file(self.args.path))
+        self.master_db = master.read_database()
+        self.master_changed = False
+        mesa_keys = self.mesa_functions.keys()
+        master_keys = self.master_db['functions'].keys()
+        for name in sorted(mesa_keys - master_keys):
+            self.add_function(name)
+        for name in sorted(master_keys - mesa_keys):
+            self.note_extra_function(name)
+        if self.master_changed:
+            master.write_database(self.master_db)
+
+    def add_function(self, name):
+        print('Function missing from master database: {0!r}'.format(name))
+        if self.args.add:
+            self.master_db['functions'][name] = self.mesa_functions[name]
+            self.master_changed = True
+
+    def note_extra_function(self, name):
+        print('Extra function in master database: {0!r}'.format(name))
+
+
+if __name__ == '__main__':
+    Processor().run()
