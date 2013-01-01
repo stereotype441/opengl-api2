@@ -1,0 +1,57 @@
+#!/usr/bin/env python3
+
+
+import argparse
+import master
+import os.path
+import c_file
+
+
+FILES_OF_INTEREST = ('glcorearb.h',
+                     'glext.h')
+
+
+def translate_functions(result, functions):
+    for name in functions.keys():
+        result[name] = {}
+
+
+class Processor(object):
+    def __init__(self):
+        parser = argparse.ArgumentParser(
+            description='Process headers downloaded from www.opengl.org/registry/api/')
+        parser.add_argument('path', metavar='PATH',
+                            help='Path to www.opengl.org/registry/api/')
+        parser.add_argument('--add', action='store_true',
+                            help='Add new functions to master database')
+        self.args = parser.parse_args()
+
+    def run(self):
+        self.gl_functions = {}
+        for filename in FILES_OF_INTEREST:
+            translate_functions(
+                self.gl_functions,
+                c_file.parse_c_file(os.path.join(self.args.path, filename)))
+        self.master_db = master.read_database()
+        self.master_changed = False
+        gl_keys = self.gl_functions.keys()
+        master_keys = self.master_db['functions'].keys()
+        for name in sorted(gl_keys - master_keys):
+            self.add_function(name)
+        for name in sorted(master_keys - gl_keys):
+            self.note_extra_function(name)
+        if self.master_changed:
+            master.write_database(self.master_db)
+
+    def add_function(self, name):
+        print('Function missing from master database: {0!r}'.format(name))
+        if self.args.add:
+            self.master_db['functions'][name] = self.gl_functions[name]
+            self.master_changed = True
+
+    def note_extra_function(self, name):
+        print('Extra function in master database: {0!r}'.format(name))
+
+
+if __name__ == '__main__':
+    Processor().run()

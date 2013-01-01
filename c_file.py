@@ -98,6 +98,10 @@ class Parser(object):
             self.parse_brace_contents()
         elif self.peek().str == 'typedef':
             self.skip_to(';')
+        elif self.peek(0).str == 'struct' and self.peek(1).type == 'word' \
+                and self.peek(2).str == ';':
+            # Structure forward declaration--ignore.
+            self.skip(3)
         elif self.peek().str in ('GLAPI', 'GL_API', 'GL_APICALL'):
             self.parse_function()
         else:
