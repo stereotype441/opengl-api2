@@ -1,0 +1,7 @@
+Data sources I want to look at
+- www.opengl.org/registry/api/
+- master database
+- www.khronos.org/registry/gles/api/
+- mesa/include/GL/
+- piglit/glapi/
+- mesa/src/mapi/glapi/gen/
