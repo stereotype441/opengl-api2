@@ -1,3 +1,4 @@
+import collections
 import hashcomments
 import re
 
@@ -16,7 +17,7 @@ def parse_spec_file(filename):
             if function_name in functions:
                 raise Exception(
                     'Function {0!r} seen twice'.format(function_name))
-            properties = {}
+            properties = collections.defaultdict(list)
             for line in func[1:]:
                 keyvalue = line.lstrip().split(None, 1)
                 if len(keyvalue) == 2:
@@ -24,8 +25,6 @@ def parse_spec_file(filename):
                 else:
                     key = keyvalue[0]
                     value = ''
-                if key not in properties:
-                    properties[key] = []
                 properties[key].append(value)
             functions[function_name] = {
                 'param_names': param_names, 'properties': properties}
