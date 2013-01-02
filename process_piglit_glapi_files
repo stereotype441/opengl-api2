@@ -1,0 +1,53 @@
+#!/usr/bin/env python3
+
+
+import argparse
+import master
+import os.path
+import spec_file
+
+
+def translate_functions(functions):
+    result = {}
+    for name in functions.keys():
+        result['gl' + name] = {}
+    return result
+
+
+class Processor(object):
+    def __init__(self):
+        parser = argparse.ArgumentParser(
+            description='Process files from piglit/glapi/')
+        parser.add_argument('path', metavar='PATH',
+                            help='Path to piglit/glapi/')
+        parser.add_argument('--add', action='store_true',
+                            help='Add new functions to master database')
+        self.args = parser.parse_args()
+
+    def run(self):
+        self.piglit_functions = translate_functions(
+            spec_file.parse_spec_file(
+                os.path.join(self.args.path, 'gl.spec')))
+        self.master_db = master.read_database()
+        self.master_changed = False
+        piglit_keys = self.piglit_functions.keys()
+        master_keys = self.master_db['functions'].keys()
+        for name in sorted(piglit_keys - master_keys):
+            self.add_function(name)
+        for name in sorted(master_keys - piglit_keys):
+            self.note_extra_function(name)
+        if self.master_changed:
+            master.write_database(self.master_db)
+
+    def add_function(self, name):
+        print('Function missing from master database: {0!r}'.format(name))
+        if self.args.add:
+            self.master_db['functions'][name] = self.piglit_functions[name]
+            self.master_changed = True
+
+    def note_extra_function(self, name):
+        print('Extra function in master database: {0!r}'.format(name))
+
+
+if __name__ == '__main__':
+    Processor().run()
