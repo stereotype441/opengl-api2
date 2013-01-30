@@ -1,14 +1,86 @@
-Data sources I want to look at
-- www.opengl.org/registry/api/
-- master database
-- www.khronos.org/registry/gles/api/
-  - 1.0/gl.h
-  - 1.1/gl.h
-  - 1.1/glext.h
-  - 2.0/gl2.h
-  - 2.0/gl2ext.h
-  - 3.0/gl3.h
-  - 3.0/gl3ext.h
-- mesa/include/GL/
-- piglit/glapi/
-- mesa/src/mapi/glapi/gen/
+Format of the data in master.json
+---------------------------------
+
+{
+  "functions": {
+    <function name, including "gl" prefix>: {
+      "availability": <availability criterion--see below>
+    }
+  }
+}
+
+Availability criteria
+---------------------
+
+A function availability criterion is represented as a dictionary whose
+values are lists of lists of (either string or integer).  To evaluate
+a criterion (and determine whether the function is present in a given
+implementation) execute the following pseudocode:
+
+- Let avail be the function availability criterion.
+
+- Let api be one of the following strings, depending on which API is
+  in use:
+
+  - "core" if desktop GL is in use, and one of the following is true:
+    (a) the GL version is >= 3.2 and the core profile is in use, or
+    (b) the GL version is 3.1 and GL_ARB_compatibility is missing from
+    the GL extension string.
+
+  - "compatibility" if desktop GL is in use, and one of the following
+    is true: (a) the GL version is >= 3.2 and the compatibility
+    profile is in use, (b) the GL version is 3.1 and
+    GL_ARB_compatibility is present in the GL extension string, or (c)
+    the GL version is 3.0 or less.
+
+  - "gles1" if GLES is in use, and the GLES version is 1.0 or 1.1
+    (these are considered a single API since GLES 1.1 is backward
+    compatible with GLES 1.0).
+
+  - "gles2" if GLES is in use, and the GLES version is 2.0 or 3.0
+    (these are considered a single API since GLES 3.0 is backward
+    compatible with GLES 2.0).
+
+- If avail[api] is not present (there is no such key), or it is the
+  empty list, then stop.  The function is not available.
+
+- Otherwise, avail[api] is a list of sublists of terms.  Evaluate each
+  term to a boolean as described below.  Then combine the booleans for
+  each term in a sublist using AND.  Then combine the booleans for
+  each sublist using OR.  Combining an empty list using AND yields
+  true; combining an empty list using OR yields false.  The function
+  is available if and only if the final result is true.
+
+  - A term of the form ["version >=", <value>] (where <value> is an
+    integer) evaluates to true if and only if the GL version number is
+    greater than equal to <value> divided by 10.
+
+  - A term of the form ["extension", <name>] (where <name> is a string
+    beginning with "GL_") evaluates to true if and only if <name>
+    exactly matches one of the space-separated elements in the GL
+    extension string.
+
+So, for example, the following availability criterion:
+
+{
+  "compatibility": [[["version >=", 30]], [["extension", "GL_foo"]]],
+  "gles2": [[["extension", "GL_foo"], ["extension", "GL_bar"]]]
+  "gles1": [],
+  "core": [[]],
+}
+
+Means that:
+
+- In a compatibility context, the function is available if the GL
+  version is at least 3.0 or the "GL_foo" extension is present (outer
+  level of list nesting combined using OR).
+
+- In a GLES 2.0 or GLES 3.0 context, the function is only available if
+  both the "GL_foo" and "GL_bar" extensions are present (inner level
+  of list nesting combined using AND).
+
+- In a GLES 1.0 or GLES 1.1 context, the function is never available
+  (empty list combined using OR yields false).
+
+- In a core context, the function is always available (empty list
+  combined using AND yields true).

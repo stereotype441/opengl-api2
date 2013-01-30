@@ -2,15 +2,48 @@
 
 
 import argparse
+import availability
 import master
 import os.path
+import re
 import spec_file
+
+
+VERSION_CATEGORY_REGEXP = re.compile('^VERSION_(?P<major>[0-9])_(?P<minor>[0-9])$')
+
+
+def compute_availability(name, properties):
+    deprecated = properties['deprecated']
+    category = properties['category']
+    subcategory = properties['subcategory']
+    assert len(category) == 1
+    assert len(category[0]) > 0
+    m = VERSION_CATEGORY_REGEXP.match(category[0])
+    if m:
+        assert not subcategory
+        version = 10 * int(m.group('major')) + int(m.group('minor'))
+        compat_avail = [[["version >=", version]]]
+    else:
+        compat_avail = [[["extension", category[0]]]]
+    if subcategory:
+        assert len(subcategory) == 1
+        assert len(subcategory[0]) > 0
+        compat_avail[0].append(["extension", subcategory[0]])
+    if deprecated:
+        assert deprecated == ['3.1']
+        core_avail = []
+    else:
+        core_avail = compat_avail
+    return availability.canonicalize(
+        { 'core': core_avail, 'compatibility': compat_avail })
 
 
 def translate_functions(functions):
     result = {}
     for name in functions.keys():
-        result['gl' + name] = {}
+        result['gl' + name] = {
+            'availability': compute_availability(name, functions[name]['properties'])
+            }
     return result
 
 
@@ -22,6 +55,8 @@ class Processor(object):
                             help='Path to www.opengl.org/registry/api/')
         parser.add_argument('--add', action='store_true',
                             help='Add new functions to master database')
+        parser.add_argument('--fix-availability', action='store_true',
+                            help='Fix availability in master database')
         self.args = parser.parse_args()
 
     def run(self):
@@ -34,6 +69,8 @@ class Processor(object):
         master_keys = self.master_db['functions'].keys()
         for name in sorted(gl_keys - master_keys):
             self.add_function(name)
+        for name in sorted(gl_keys & master_keys):
+            self.check_function(name)
         for name in sorted(master_keys - gl_keys):
             self.note_extra_function(name)
         if self.master_changed:
@@ -47,6 +84,9 @@ class Processor(object):
 
     def note_extra_function(self, name):
         print('Extra function in master database: {0!r}'.format(name))
+
+    def check_function(self, name):
+        if 
 
 
 if __name__ == '__main__':
